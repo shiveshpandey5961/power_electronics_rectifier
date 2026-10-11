@@ -1,0 +1,931 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rectifier Bench — Interactive Power Electronics Laboratory</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080d1a;--pn:#0e172a;--pn2:#131f38;--ln:#1e2e4f;--wr:#3b4d73;
+  --tx:#e2e8f0;--mu:#8da2c0;--vo:#10e7b2;--vo-glow:rgba(16,231,178,0.35);
+  --io:#fbb034;--io-glow:rgba(251,176,52,0.35);--src:#8b7cf6;--gate:#c084fc;
+  --ac:#041a14;--card-bg:#0b1325;
+  box-sizing:border-box;
+}
+:root[data-theme="light"]{
+  --bg:#edf2f9;--pn:#ffffff;--pn2:#f4f7fc;--ln:#cbd5e1;--wr:#94a3b8;
+  --tx:#0f172a;--mu:#64748b;--vo:#059669;--vo-glow:rgba(5,150,105,0.25);
+  --io:#d97706;--io-glow:rgba(217,119,6,0.25);--src:#6366f1;--gate:#9333ea;
+  --ac:#ffffff;--card-bg:#f8fafc;
+}
+@media (prefers-color-scheme:light){
+  :root:not([data-theme="dark"]):not([data-theme="light"]){
+    --bg:#edf2f9;--pn:#ffffff;--pn2:#f4f7fc;--ln:#cbd5e1;--wr:#94a3b8;
+    --tx:#0f172a;--mu:#64748b;--vo:#059669;--vo-glow:rgba(5,150,105,0.25);
+    --io:#d97706;--io-glow:rgba(217,119,6,0.25);--src:#6366f1;--gate:#9333ea;
+    --ac:#ffffff;--card-bg:#f8fafc;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 "IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+header{padding:14px 22px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid var(--ln);background:var(--pn)}
+.header-left{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-0.02em;display:flex;align-items:center;gap:8px}
+.badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;background:var(--vo);color:var(--ac);text-transform:uppercase;letter-spacing:0.04em}
+header p{margin:0;color:var(--mu);font-size:13px}
+.hdr-btn{padding:6px 12px;border:1px solid var(--ln);border-radius:8px;background:var(--pn2);color:var(--tx);font:500 12px inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.hdr-btn:hover{border-color:var(--vo);color:var(--vo)}
+main{display:grid;gap:14px;padding:14px 20px;grid-template-columns:minmax(0,5.2fr) minmax(0,6.8fr)}
+@media(max-width:960px){main{grid-template-columns:minmax(0,1fr)}}
+.pn{background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:14px;box-shadow:0 4px 16px rgba(0,0,0,0.12)}
+.wide{grid-column:1/-1}
+.pn-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+h2{font-size:14px;margin:0;font-weight:600;letter-spacing:-0.01em}
+#st{font:500 12px/1.4 "IBM Plex Mono",monospace;color:var(--vo);margin:0 0 8px;padding:4px 10px;background:var(--pn2);border:1px solid var(--ln);border-radius:6px;display:inline-block}
+#st.fwd-state{color:var(--io);border-color:rgba(251,176,52,0.4)}
+#st.off-state{color:var(--mu)}
+canvas{width:100%;display:block;border-radius:8px}
+.seg{display:flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden;margin-top:4px;background:var(--bg)}
+.seg button{flex:1;padding:8px 8px;background:transparent;color:var(--tx);border:0;font:500 12px inherit;cursor:pointer;transition:all .12s;white-space:nowrap}
+.seg button:hover:not(.on){background:rgba(255,255,255,0.04)}
+.seg button.on{background:var(--vo);color:var(--ac);font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.2)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--vo);outline-offset:1px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px 18px}
+.f{display:block;font-size:12px;color:var(--mu);font-weight:500}
+.f b{float:right;color:var(--tx);font:600 12px "IBM Plex Mono",monospace}
+.f.off{opacity:.4;pointer-events:none}
+input[type=range]{width:100%;accent-color:var(--vo);margin:6px 0 0;cursor:pointer}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.btn{padding:7px 14px;border-radius:8px;border:0;background:var(--vo);color:var(--ac);font:600 13px inherit;cursor:pointer;transition:all .15s}
+.btn:hover{filter:brightness(1.1)}
+.btn-sec{background:var(--pn2);color:var(--tx);border:1px solid var(--ln)}
+.btn-sec:hover{border-color:var(--vo);color:var(--vo)}
+.btn-group{display:flex;border:1px solid var(--ln);border-radius:8px;overflow:hidden}
+.btn-group button{padding:6px 10px;background:var(--pn2);color:var(--tx);border:0;border-right:1px solid var(--ln);font:500 12px "IBM Plex Mono",monospace;cursor:pointer}
+.btn-group button:last-child{border-right:0}
+.btn-group button.active{background:var(--vo);color:var(--ac);font-weight:600}
+.row input{flex:1;min-width:140px}
+.row span{font:600 13px "IBM Plex Mono",monospace;min-width:48px;text-align:right;color:var(--vo)}
+.m{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.m div{background:var(--card-bg);border:1px solid var(--ln);border-radius:8px;padding:9px 12px;transition:border-color .15s}
+.m div:hover{border-color:var(--vo)}
+.m span{display:block;font-size:11px;color:var(--mu);text-transform:uppercase;letter-spacing:0.04em;font-weight:500}
+.m strong{font:600 16px "IBM Plex Mono",monospace;color:var(--tx);display:block;margin:2px 0}
+.m small{display:block;color:var(--mu);font-size:11px;line-height:1.2}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;margin-top:22px;cursor:pointer;user-select:none}
+.chk input{accent-color:var(--io);width:16px;height:16px;cursor:pointer}
+.legend{display:flex;gap:14px;font-size:11px;font-family:"IBM Plex Mono",monospace;color:var(--mu);align-items:center;flex-wrap:wrap}
+.legend-item{display:inline-flex;align-items:center;gap:5px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+.legend-dot.vo{background:var(--vo);box-shadow:0 0 6px var(--vo)}
+.legend-dot.io{background:var(--io);box-shadow:0 0 6px var(--io)}
+.legend-dot.src{background:var(--src)}
+.legend-dot.gate{background:var(--gate)}
+.wv-container{position:relative}
+.wv-tooltip{position:absolute;pointer-events:none;background:var(--pn2);border:1px solid var(--ln);border-radius:6px;padding:6px 10px;font:11px "IBM Plex Mono",monospace;color:var(--tx);display:none;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,0.3);white-space:nowrap}
+</style></head><body>
+<header>
+ <div class="header-left">
+  <h1>Rectifier Bench <span class="badge">Pro v2.0</span></h1>
+  <p>Interactive Power Electronics Laboratory: DBR & TCR with Animated Current Flow</p>
+ </div>
+ <div style="display:flex;gap:8px">
+  <button class="hdr-btn" id="theme-btn">☀️ / 🌙 Theme</button>
+ </div>
+</header>
+<main>
+<section class="pn">
+ <div class="pn-head">
+  <h2 id="ttl">Circuit Schematic</h2>
+  <div class="legend">
+   <span class="legend-item"><span class="legend-dot vo"></span>Active Conduction</span>
+   <span class="legend-item"><span class="legend-dot io"></span>Freewheeling</span>
+   <span class="legend-item"><span class="legend-dot gate"></span>Gate Fired</span>
+  </div>
+ </div>
+ <p id="st">Ready</p>
+ <canvas id="sc"></canvas>
+</section>
+
+<section class="pn">
+ <div class="pn-head">
+  <h2>Waveforms over One Cycle</h2>
+  <div class="legend">
+   <span class="legend-item"><span class="legend-dot vo"></span>vo (output)</span>
+   <span class="legend-item"><span class="legend-dot io"></span>io (current)</span>
+   <span class="legend-item"><span class="legend-dot src"></span>v_supply</span>
+  </div>
+ </div>
+ <div class="wv-container">
+  <canvas id="wv"></canvas>
+  <div class="wv-tooltip" id="wv-tip"></div>
+ </div>
+ <div class="row">
+  <button class="btn" id="pl">Play</button>
+  <button class="btn btn-sec" id="step-back" title="Step back 5°">◀ -5°</button>
+  <button class="btn btn-sec" id="step-fwd" title="Step forward 5°">+5° ▶</button>
+  <div class="btn-group" id="speed-grp">
+   <button data-spd="0.25">0.25x</button>
+   <button data-spd="0.5">0.5x</button>
+   <button data-spd="1" class="active">1x</button>
+   <button data-spd="2">2x</button>
+  </div>
+  <input id="wt" type="range" min="0" max="359.9" step="0.1" value="0" aria-label="Angle">
+  <span id="wtv">0°</span>
+ </div>
+</section>
+
+<section class="pn wide">
+ <div class="ctl">
+  <div><span class="f">Supply</span><div class="seg" data-k="ph"><button data-v="1">Single-phase</button><button data-v="3">Three-phase</button></div></div>
+  <div><span class="f">Rectification</span><div class="seg" data-k="wave"><button data-v="hw">Half-wave</button><button data-v="fw">Full-wave</button></div></div>
+  <div><span class="f">Devices</span><div class="seg" data-k="dev"><button data-v="dbr">DBR (diodes)</button><button data-v="tcr">TCR (thyristors)</button></div></div>
+  <div><span class="f">Load</span><div class="seg" data-k="load"><button data-v="r">R</button><button data-v="rl">RL</button><button data-v="rle">RLE</button></div></div>
+  <label class="f" id="l_alpha">Firing angle α <b></b><input type="range" id="alpha" min="0" max="180" step="1"></label>
+  <label class="f" id="l_V">Supply voltage, rms per phase <b></b><input type="range" id="V" min="100" max="400" step="5"></label>
+  <label class="f" id="l_R">Resistance R <b></b><input type="range" id="R" min="1" max="100" step="1"></label>
+  <label class="f" id="l_L">Inductance L <b></b><input type="range" id="L" min="1" max="500" step="1"></label>
+  <label class="f" id="l_E">Back-emf E <b></b><input type="range" id="E" min="0" max="300" step="5"></label>
+  <label class="chk"><input type="checkbox" id="fwd"> Freewheeling diode (FWD) across load</label>
+ </div>
+</section>
+
+<section class="pn wide">
+ <h2>Steady-State Simulation Results & Theoretical Verification</h2>
+ <div class="m" id="mt"></div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id),D=Math.PI/180,TP=2*Math.PI,N=3600,dpr=window.devicePixelRatio||1;
+const S={ph:1,wave:'fw',dev:'tcr',load:'rl',alpha:45,V:230,R:20,L:45,E:100,fwd:false,wt:0,play:false,speed:1};
+let C,res,K={},flowOffset=0,lastFrameTime=performance.now();
+
+function cols(){
+ const s=getComputedStyle(document.documentElement);
+ ['bg','pn','pn2','ln','wr','tx','mu','vo','io','src','gate','ac'].forEach(k=>K[k]=s.getPropertyValue('--'+k).trim());
+}
+
+function build(){
+ const Vm=S.V*Math.SQRT2;
+ const v=[t=>Vm*Math.sin(t),t=>Vm*Math.sin(t-TP/3),t=>Vm*Math.sin(t+TP/3)];
+ let cf,names,legs,base=false,nsrc=1;
+ if(S.ph==1&&S.wave=='hw'){
+   base=true;cf=[{f:v[0],on:[0]}];names=['1'];legs=[{t:0}];
+ }else if(S.ph==1){
+   // Leg 0: top 0 (T1), bottom 3 (T4)
+   // Leg 1: top 2 (T3), bottom 1 (T2)
+   cf=[{f:v[0],on:[0,1]},{f:t=>-v[0](t),on:[2,3]}];
+   names=['1','2','3','4'];legs=[{t:0,b:3},{t:2,b:1}];
+ }else if(S.wave=='hw'){
+   nsrc=3;cf=[0,1,2].map(i=>({f:v[i],on:[i]}));
+   names=['1','2','3'];legs=[{t:0},{t:1},{t:2}];
+ }else{
+   // 3-phase full-wave 6-pulse bridge
+   nsrc=3;
+   cf=[[0,1],[0,2],[1,2],[1,0],[2,0],[2,1]].map(([a,b])=>({f:t=>v[a](t)-v[b](t),on:[a,3+b]}));
+   names=['1','3','5','4','6','2'];
+   legs=[{t:0,b:3},{t:1,b:4},{t:2,b:5}];
+ }
+ const K_=cf.length,F=cf.map(c=>{
+   const a=new Float64Array(N);
+   for(let n=0;n<N;n++)a[n]=c.f(n*TP/N);
+   return a;
+ });
+ const am=new Int16Array(N);
+ for(let n=0;n<N;n++){
+   let k=base?-1:0,b=base?0:F[0][n];
+   for(let j=base?0:1;j<K_;j++)if(F[j][n]>b){b=F[j][n];k=j}
+   am[n]=k;
+ }
+ const th=new Array(K_).fill(0);
+ for(let k=0;k<K_;k++)for(let n=0;n<N;n++)if(am[n]==k&&am[(n+N-1)%N]!=k){th[k]=n*TP/N;break}
+ C={cf,names,legs,F,th,v,nsrc,Vm,P:S.dev=='dbr'?'D':'T',base};
+}
+
+function sim(){
+ build();
+ const dt=TP/N,Ts=1/50/N,Lh=S.load=='r'?0:S.L*1e-3,E=S.load=='rle'?S.E:0,Rr=S.R;
+ const al=S.dev=='dbr'?0:S.alpha*D;
+ // Broad gating pulse width: 60° for 3-phase, 90° for 1-phase to ensure robust firing in inductive & discontinuous modes
+ const pw=S.ph==3?(TP/6):(TP/4);
+ const dio=S.dev=='dbr',K_=C.cf.length,F=C.F,th=C.th;
+ const ex=Lh?Math.exp(-Rr*Ts/Lh):0,fwdOn=S.fwd&&Lh>0;
+ let i=0,act=-1,fw=false;
+ const vo=new Float32Array(N),io=new Float32Array(N),st=new Int8Array(N);
+
+ // 120 cycles to ensure deep, high-precision steady-state convergence even with large L/R ratios
+ for(let c=0;c<120;c++)for(let n=0;n<N;n++){
+  const t=n*dt;
+  // If freewheeling diode active and output voltage would go negative:
+  if(act>=0&&fwdOn&&F[act][n]<0){act=-1;fw=true}
+  const ref=act>=0?F[act][n]:(fw?0:E);
+  let bk=-1,bv=ref;
+  for(let k=0;k<K_;k++){
+   if(k==act)continue;
+   if(!dio){
+     const d=(((t-th[k]-al)%TP)+TP)%TP;
+     if(d>pw)continue;
+   }
+   if(F[k][n]>bv){bv=F[k][n];bk=k}
+  }
+  if(bk>=0){act=bk;fw=false}
+  let v=act>=0?F[act][n]:(fw?0:E);
+  const vs=(v-E)/Rr;
+  i=Lh?vs+(i-vs)*ex:Math.max(0,vs);
+  if(i<=0){
+    i=0;
+    if(act>=0||fw){act=-1;fw=false;v=E}
+  }
+  if(c==119){vo[n]=v;io[n]=i;st[n]=act>=0?act:(fw?-2:-1)}
+ }
+
+ let sv=0,sv2=0,si=0,si2=0,cd=0,iPeak=0;
+ for(let n=0;n<N;n++){
+   sv+=vo[n];sv2+=vo[n]**2;si+=io[n];si2+=io[n]**2;
+   if(io[n]>1e-5)cd++;
+   if(io[n]>iPeak)iPeak=io[n];
+ }
+ const Vd=sv/N,Vr=Math.sqrt(sv2/N),Id=si/N,Ir=Math.sqrt(si2/N),Vm=C.Vm,a=al;
+ 
+ // Exact theoretical textbook calculation depending on circuit and load mode
+ const th0Info=calcTextbookVdc();
+ const P_load=Ir*Ir*Rr+E*Id;
+ const P_dc=Vd*Id;
+ const eff=P_load>1e-4?Math.min(100,(P_dc/P_load)*100):0;
+ 
+ // Peak inverse voltage calculation
+ let piv=Vm;
+ if(S.ph==1&&S.wave=='hw')piv=2*Vm;
+ else if(S.ph==1&&S.wave=='fw')piv=Vm;
+ else if(S.ph==3&&S.wave=='hw')piv=Math.sqrt(3)*Vm;
+ else piv=Math.sqrt(3)*Vm;
+
+ res={
+   vo,io,st,Vd,Vr,Id,Ir,iPeak,
+   rf:Vd>1e-4?Math.sqrt(Math.max(Vr*Vr-Vd*Vd,0))/Vd:NaN,
+   ff:Vd>1e-4?Vr/Vd:NaN,
+   P:P_load,eff,
+   cd:cd/N*360,
+   th0:th0Info.val,
+   formulaName:th0Info.name,
+   piv
+ };
+}
+
+function calcTextbookVdc(){
+ const Vm=S.V*Math.SQRT2;
+ const a=S.dev=='dbr'?0:S.alpha*D;
+ let th0=0,name='';
+ if(S.ph==1&&S.wave=='hw'){
+   th0=(Vm/(2*Math.PI))*(1+Math.cos(a));
+   name='Half-wave R / FWD formula';
+ }else if(S.ph==1&&S.wave=='fw'){
+   if(S.load=='r'||S.fwd){
+     th0=(Vm/Math.PI)*(1+Math.cos(a));
+     name='R load / FWD (Vm/π·(1+cosα))';
+   }else{
+     th0=(2*Vm/Math.PI)*Math.cos(a);
+     name='Continuous RL (2Vm/π·cosα)';
+   }
+ }else if(S.ph==3&&S.wave=='hw'){
+   if(S.load=='r'||S.fwd){
+     if(a<=Math.PI/6){
+       th0=(3*Math.sqrt(3)*Vm/(2*Math.PI))*Math.cos(a);
+     }else{
+       th0=(3*Vm/(2*Math.PI))*(1+Math.cos(a+Math.PI/6));
+     }
+     name='3-Phase HW R / FWD formula';
+   }else{
+     th0=(3*Math.sqrt(3)*Vm/(2*Math.PI))*Math.cos(a);
+     name='Continuous RL (3√3Vm/2π·cosα)';
+   }
+ }else{
+   // 3-phase full wave bridge
+   if(S.load=='r'||S.fwd){
+     if(a<=Math.PI/3){
+       th0=(3*Math.sqrt(3)*Vm/Math.PI)*Math.cos(a);
+     }else{
+       th0=(3*Math.sqrt(3)*Vm/Math.PI)*(1+Math.cos(a+Math.PI/3));
+     }
+     name='3-Phase FW R / FWD formula';
+   }else{
+     th0=(3*Math.sqrt(3)*Vm/Math.PI)*Math.cos(a);
+     name='Continuous RL (3√3Vm/π·cosα)';
+   }
+ }
+ return {val:Math.max(0,th0),name};
+}
+
+const f=(x,d=1)=>isFinite(x)?x.toFixed(d):'–';
+
+function metrics(){
+ const q=S.ph==1?(S.wave=='hw'?1:2):(S.wave=='hw'?3:6),r=res;
+ const cards=[
+   ['Vdc',f(r.Vd)+' V','Mean output voltage'],
+   ['Vrms',f(r.Vr)+' V','RMS output voltage'],
+   ['Idc',f(r.Id,2)+' A','Mean load current'],
+   ['Irms',f(r.Ir,2)+' A','RMS load current'],
+   ['Ipeak',f(r.iPeak,2)+' A','Peak instantaneous current'],
+   ['Ripple factor',f(r.rf,3),'Vac,rms / Vdc'],
+   ['Form factor',f(r.ff,3),'Vrms / Vdc'],
+   ['Load power',f(r.P,0)+' W','I²R + E·Idc absorbed'],
+   ['Efficiency η',f(r.eff,1)+'%','Pdc / Ptotal rectification'],
+   ['Conduction',f(r.cd,0)+'°','of 360° with load current'],
+   ['Textbook Vdc',f(r.th0)+' V',r.formulaName],
+   ['Device PIV',f(r.piv,0)+' V','Peak Inverse Voltage rating'],
+   ['Pulses/cycle',q,'Ripple frequency multiplier']
+ ];
+ $('mt').innerHTML=cards.map(c=>`<div><span>${c[0]}</span><strong>${c[1]}</strong><small>${c[2]}</small></div>`).join('');
+}
+
+const dn=i=>C.P+C.names[i];
+
+function isGateActive(deviceIndex,t){
+ if(S.dev=='dbr')return false;
+ const al=S.alpha*D,pw=S.ph==3?(TP/6):(TP/4);
+ for(let k=0;k<C.cf.length;k++){
+   if(C.cf[k].on.includes(deviceIndex)){
+     const d=(((t-C.th[k]-al)%TP)+TP)%TP;
+     if(d<=pw)return true;
+   }
+ }
+ return false;
+}
+
+function getActivePath(n,sa){
+ const isFwd=(sa===-2)&&(res.io[n]>1e-4);
+ if(isFwd){
+   // Freewheeling loop: local through FWD and Load
+   return {
+     pts:[[370,280],[370,50],[430,50],[430,280],[370,280]],
+     col:K.io,isFwd:true
+   };
+ }
+ if(sa<0||res.io[n]<=1e-4)return null;
+
+ const xs=S.ph==1?(S.wave=='hw'?[200]:[140,300]):[130,220,310];
+ 
+ if(S.ph==1&&S.wave=='hw'){
+   // Single phase half wave
+   return {
+     pts:[[200,280],[200,165],[200,50],[430,50],[430,280],[200,280]],
+     col:K.vo,isFwd:false
+   };
+ }else if(S.ph==1){
+   // Single phase full wave
+   if(sa===0){
+     // Positive half cycle: Leg 1 mid (300,165) -> through source left to Leg 0 mid (140,165)
+     // -> UP T1 (140,50) -> RIGHT top bus to (430,50) -> DOWN load to (430,280)
+     // -> LEFT bot bus to (300,280) -> UP T2 to (300,165)
+     return {
+       pts:[[300,165],[140,165],[140,50],[430,50],[430,280],[300,280],[300,165]],
+       col:K.vo,isFwd:false
+     };
+   }else{
+     // Negative half cycle: Leg 0 mid (140,165) -> through source right to Leg 1 mid (300,165)
+     // -> UP T3 (300,50) -> RIGHT top bus to (430,50) -> DOWN load to (430,280)
+     // -> LEFT bot bus to (140,280) -> UP T4 to (140,165)
+     return {
+       pts:[[140,165],[300,165],[300,50],[430,50],[430,280],[140,280],[140,165]],
+       col:K.vo,isFwd:false
+     };
+   }
+ }else if(S.wave=='hw'){
+   // 3-phase half-wave
+   const xl=xs[sa];
+   return {
+     pts:[[xl,280],[xl,165],[xl,50],[430,50],[430,280],[xl,280]],
+     col:K.vo,isFwd:false
+   };
+ }else{
+   // 3-phase full wave bridge
+   // C.cf has on: [a, 3+b]
+   const pair=C.cf[sa].on;
+   const legTop=pair[0];
+   const legBot=pair[1]-3;
+   const xa=xs[legTop];
+   const xb=xs[legBot];
+   const srcYa=140+legTop*25;
+   const srcYb=140+legBot*25;
+   return {
+     pts:[
+       [50,srcYa],[xa,165],[xa,50],[430,50],[430,280],[xb,280],[xb,165],[50,srcYb],[50,srcYa]
+     ],
+     col:K.vo,isFwd:false
+   };
+ }
+}
+
+function drawFlow(x,pts,col,mag){
+ if(!pts||pts.length<2||mag<=1e-4)return;
+ let totalLen=0;
+ const segs=[];
+ for(let i=0;i<pts.length-1;i++){
+   const dx=pts[i+1][0]-pts[i][0];
+   const dy=pts[i+1][1]-pts[i][1];
+   const len=Math.hypot(dx,dy);
+   if(len>0.1){
+     segs.push({x1:pts[i][0],y1:pts[i][1],x2:pts[i+1][0],y2:pts[i+1][1],dx,dy,len,start:totalLen});
+     totalLen+=len;
+   }
+ }
+ if(totalLen<=1)return;
+
+ x.save();
+ x.lineCap='round';
+ x.lineJoin='round';
+ 
+ // Soft glowing underlay
+ x.strokeStyle=col;
+ x.globalAlpha=0.35;
+ x.lineWidth=7;
+ x.beginPath();
+ x.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<pts.length;i++)x.lineTo(pts[i][0],pts[i][1]);
+ x.stroke();
+
+ // Core energetic stroke
+ x.globalAlpha=0.9;
+ x.lineWidth=2.8;
+ x.stroke();
+
+ // Moving directional chevrons along path
+ const spacing=26;
+ const offset=(flowOffset%spacing);
+ x.shadowColor=col;
+ x.shadowBlur=6;
+
+ for(let d=offset;d<totalLen;d+=spacing){
+   for(const s of segs){
+     if(d>=s.start&&d<=s.start+s.len){
+       const u=(d-s.start)/s.len;
+       const px=s.x1+u*s.dx;
+       const py=s.y1+u*s.dy;
+       const angle=Math.atan2(s.dy,s.dx);
+       
+       x.save();
+       x.translate(px,py);
+       x.rotate(angle);
+       x.fillStyle='#ffffff';
+       x.beginPath();
+       x.moveTo(5,0);
+       x.lineTo(-3,-3.5);
+       x.lineTo(-1,0);
+       x.lineTo(-3,3.5);
+       x.closePath();
+       x.fill();
+       x.restore();
+       break;
+     }
+   }
+ }
+ x.restore();
+}
+
+function sch(n){
+ const g=$('sc'),x=g.getContext('2d'),s=g.width/520;
+ x.setTransform(s,0,0,s,0,0);
+ x.clearRect(0,0,520,330);
+ x.lineWidth=2;x.lineCap='round';x.lineJoin='round';x.font='11px "IBM Plex Mono",monospace';
+
+ const sa=res.st[n];
+ const ioCurrent=res.io[n];
+ const hasCurrent=ioCurrent>1e-4;
+ const isFwdCon=sa===-2&&hasCurrent;
+ const onDevs=(sa>=0&&hasCurrent)?C.cf[sa].on:[];
+ const t=n*(TP/N);
+ const gate=S.dev=='tcr',bridge=S.wave=='fw';
+ const xs=S.ph==1?(S.wave=='hw'?[200]:[140,300]):[130,220,310];
+
+ const L=(a,b,c,d,col,lw=2)=>{
+   x.strokeStyle=col;x.lineWidth=lw;x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.stroke();
+ };
+ const T=(t,a,b,al='left',col=K.mu,font=null)=>{
+   if(font)x.font=font;else x.font='11px "IBM Plex Mono",monospace';
+   x.fillStyle=col;x.textAlign=al;x.fillText(t,a,b);
+ };
+
+ // Background passive wires
+ const wireBase=K.wr||'#3b4d73';
+ L(xs[0],50,430,50,wireBase,1.6);
+ L(xs[0],280,430,280,wireBase,1.6);
+ T('+',xs[0]-14,54,'right',K.mu,'bold 12px "IBM Plex Mono",monospace');
+ T(bridge?'−':'N',xs[0]-14,284,'right',K.mu,'bold 12px "IBM Plex Mono",monospace');
+
+ // Device rendering function with dynamic glow and dimming
+ const dev=(xc,y1,y2,lbl,isCond,devId,isGateDev)=>{
+   const cy=(y1+y2)/2;
+   const active=isCond;
+   const isTriggered=gate&&isGateActive(devId,t);
+   const col=isCond?(isFwdCon?K.io:K.vo):(wireBase);
+   const txtCol=active?(isFwdCon?K.io:K.vo):K.mu;
+
+   x.save();
+   if(active){
+     x.shadowColor=col;x.shadowBlur=12;
+   }else{
+     x.globalAlpha=0.28; // DIMMED NON-CONDUCTING DEVICE
+   }
+
+   // Device leads
+   L(xc,y2,xc,cy+9,col,active?2.5:1.5);
+   L(xc,cy-8,xc,y1,col,active?2.5:1.5);
+
+   // Main triangle
+   x.strokeStyle=col;
+   x.fillStyle=active?col:'rgba(141,156,185,0.06)';
+   x.beginPath();
+   x.moveTo(xc-9,cy+9);
+   x.lineTo(xc+9,cy+9);
+   x.lineTo(xc,cy-7);
+   x.closePath();
+   x.fill();
+   x.stroke();
+
+   // Cathode line
+   L(xc-10,cy-8,xc+10,cy-8,col,active?2.6:1.6);
+
+   // Gate terminal and active pulse
+   if(isGateDev){
+     const gateCol=isTriggered?K.gate:col;
+     L(xc+4,cy+3,xc+20,cy+10,gateCol,isTriggered?2.5:1.5);
+     if(isTriggered){
+       x.fillStyle=K.gate;
+       x.shadowColor=K.gate;
+       x.shadowBlur=10;
+       x.beginPath();
+       x.arc(xc+20,cy+10,3.5,0,TP);
+       x.fill();
+       T('GATE',xc+25,cy+13,'left',K.gate,'bold 10px "IBM Plex Mono",monospace');
+     }
+   }
+
+   // Label
+   T(lbl,xc-15,cy+4,'right',txtCol,active?'bold 12px "IBM Plex Mono",monospace':'11px "IBM Plex Mono",monospace');
+   if(active){
+     T('●',xc+14,cy-4,'left',col,'11px "IBM Plex Mono",monospace');
+   }
+   x.restore();
+ };
+
+ const sym=(cx,cy)=>{
+   x.strokeStyle=K.src;x.lineWidth=1.8;x.beginPath();x.arc(cx,cy,14,0,TP);x.stroke();
+   x.beginPath();x.moveTo(cx-8,cy);
+   x.bezierCurveTo(cx-4,cy-10,cx-2,cy-10,cx,cy);
+   x.bezierCurveTo(cx+2,cy+10,cx+4,cy+10,cx+8,cy);
+   x.stroke();
+ };
+
+ // Draw bridge legs and devices
+ xs.forEach((xl,i)=>{
+   const lg=C.legs[i];
+   const ot=onDevs.includes(lg.t);
+   const ob=lg.b!==undefined&&onDevs.includes(lg.b);
+
+   dev(xl,50,bridge?165:165,dn(lg.t),ot,lg.t,gate);
+   if(bridge){
+     dev(xl,165,280,dn(lg.b),ob,lg.b,gate);
+   }else{
+     L(xl,165,xl,211,ot?K.vo:wireBase);
+     L(xl,239,xl,280,ot?K.vo:wireBase);
+     sym(xl,225);
+     T(S.ph==1?'vs':'v'+'abc'[i],xl-20,229,'right',K.src);
+   }
+   // Midpoint node
+   x.fillStyle=ot||ob?K.vo:wireBase;
+   x.beginPath();x.arc(xl,165,3.5,0,TP);x.fill();
+
+   if(bridge&&S.ph==3){
+     L(xl-24,165,xl,165,wireBase);
+     T('abc'[i],xl-28,169,'right',K.src);
+   }
+ });
+
+ if(bridge&&S.ph==1){
+   L(xs[0],165,206,165,wireBase);
+   L(234,165,xs[1],165,wireBase);
+   sym(220,165);
+   T('vs',220,198,'center',K.src);
+ }
+ if(bridge&&S.ph==3){
+   // 3-phase source block on left
+   for(let i=0;i<3;i++){
+     const sy=140+i*25;
+     L(50,sy,xs[i]-24,165,wireBase,1.2);
+     sym(50,sy);
+     T('v'+'abc'[i],30,sy+4,'right',K.src);
+   }
+ }
+
+ // Load box
+ const loadActive=hasCurrent;
+ const loadCol=loadActive?(isFwdCon?K.io:K.vo):wireBase;
+ L(430,50,430,125,loadCol,loadActive?2.5:1.6);
+ L(430,215,430,280,loadCol,loadActive?2.5:1.6);
+
+ x.save();
+ if(loadActive){
+   x.strokeStyle=loadCol;x.shadowColor=loadCol;x.shadowBlur=8;
+ }else{
+   x.strokeStyle=wireBase;x.globalAlpha=0.4;
+ }
+ x.strokeRect(396,125,68,90);
+ x.restore();
+
+ const Lt=S.load=='r'?'':'L '+S.L+' mH';
+ T('R '+S.R+' Ω',430,147,'center',loadActive?K.tx:K.mu,loadActive?'bold 12px "IBM Plex Mono",monospace':null);
+ if(Lt)T(Lt,430,167,'center',loadActive?K.tx:K.mu,loadActive?'bold 12px "IBM Plex Mono",monospace':null);
+ if(S.load=='rle')T('E '+S.E+' V',430,187,'center',loadActive?K.tx:K.mu,loadActive?'bold 12px "IBM Plex Mono",monospace':null);
+
+ // Downward arrow inside load when current flows
+ if(loadActive){
+   x.save();
+   x.fillStyle=loadCol;x.strokeStyle=loadCol;
+   L(448,150,448,190,loadCol,2);
+   x.beginPath();x.moveTo(448,194);x.lineTo(444,186);x.lineTo(452,186);x.closePath();x.fill();
+   x.restore();
+ }
+
+ // Freewheeling Diode (FWD)
+ if(S.fwd&&S.load!='r'){
+   dev(370,50,280,'FWD',isFwdCon,-99,false);
+ }
+
+ // Dynamic Animated Current Path Overlay
+ const actPath=getActivePath(n,sa);
+ if(actPath){
+   drawFlow(x,actPath.pts,actPath.col,ioCurrent);
+ }
+
+ // Instantaneous readouts on schematic
+ T('vo = '+f(res.vo[n],1)+' V',510,22,'right',K.vo,'bold 12px "IBM Plex Mono",monospace');
+ T('io = '+f(res.io[n],2)+' A',510,38,'right',K.io,'bold 12px "IBM Plex Mono",monospace');
+}
+
+function wave(n){
+ const c=$('wv'),x=c.getContext('2d'),w=c.clientWidth,h=c.clientHeight;
+ x.setTransform(dpr,0,0,dpr,0,0);
+ x.clearRect(0,0,w,h);
+
+ const pl=52,pr=14,X=k=>pl+k/N*(w-pl-pr);
+ const a0=12,a1=h*0.5,b0=h*0.5+14,b1=h*0.82,c0=b1+12,c1=c0+26;
+ const vm=Math.max(C.Vm*1.1,...Array.from(res.vo,Math.abs))*1.08;
+ const im=Math.max(1,...res.io)*1.18;
+ const YA=v=>a0+(a1-a0)*(1-(v+vm)/(2*vm));
+ const YB=i=>b1-(b1-b0)*i/im;
+
+ x.font='11px "IBM Plex Mono",monospace';x.lineWidth=1;
+
+ // Vertical Grid lines
+ x.strokeStyle=K.ln;x.fillStyle=K.mu;x.textAlign='center';
+ for(let a=0;a<=360;a+=60){
+   const px=X(a/360*N);
+   x.beginPath();x.moveTo(px,a0);x.lineTo(px,c1);x.stroke();
+   x.fillText(a+'°',px,c1+14);
+ }
+
+ // Horizontal voltage axes and labels
+ x.textAlign='right';
+ [[vm,YA(vm)],[0,YA(0)],[-vm,YA(-vm)]].forEach(([v,y])=>{
+   x.fillStyle=K.mu;x.fillText(Math.round(v)+' V',pl-6,y+4);
+   x.strokeStyle=K.ln;x.beginPath();x.moveTo(pl,y);x.lineTo(w-pr,y);x.stroke();
+ });
+
+ // Current axes and labels
+ [0,im/1.18].forEach(i=>{
+   x.fillStyle=K.mu;x.fillText(f(i,1)+' A',pl-6,YB(i)+4);
+   x.strokeStyle=K.ln;x.beginPath();x.moveTo(pl,YB(i));x.lineTo(w-pr,YB(i));x.stroke();
+ });
+
+ const path=(arr,Y,col,lw,dash,fn)=>{
+   x.strokeStyle=col;x.lineWidth=lw;x.setLineDash(dash||[]);
+   x.beginPath();
+   for(let k=0;k<=N;k+=3){
+     const v=fn?fn(k):arr[k%N];
+     k?x.lineTo(X(k),Y(v)):x.moveTo(X(k),Y(v));
+   }
+   x.stroke();
+   x.setLineDash([]);
+ };
+
+ // AC source voltage curves
+ for(let i=0;i<S.ph;i++){
+   path(0,YA,K.src,1.1,[4,3],k=>C.v[i](k*TP/N));
+ }
+
+ // Output voltage vo & mean Vdc
+ path(res.vo,YA,K.vo,2.4);
+ path(0,YA,K.vo,1.2,[3,4],()=>res.Vd);
+
+ // Load current io & mean Idc
+ path(res.io,YB,K.io,2.4);
+ path(0,YB,K.io,1.2,[3,4],()=>res.Id);
+
+ // Trace labels
+ x.textAlign='left';
+ x.fillStyle=K.vo;x.fillText('vo (t)',pl+6,a0+14);
+ x.fillStyle=K.src;x.fillText(S.ph==1?'vs (ac)':'va, vb, vc',pl+64,a0+14);
+ x.fillStyle=K.io;x.fillText('io (t)',pl+6,b0+14);
+
+ // Conduction blocks along bottom
+ let s0=0;
+ for(let k=1;k<=N;k++){
+   if(k==N||res.st[k]!=res.st[s0]){
+     const q=res.st[s0],xa=X(s0),xb=X(k);
+     x.globalAlpha=q>=0?0.35:q==-2?0.35:0.1;
+     x.fillStyle=q==-2?K.io:q>=0?K.vo:K.mu;
+     x.fillRect(xa,c0,xb-xa,c1-c0);
+     x.globalAlpha=1;
+     x.strokeStyle=q==-2?K.io:q>=0?K.vo:K.ln;
+     x.strokeRect(xa,c0,xb-xa,c1-c0);
+
+     if(xb-xa>28){
+       x.fillStyle=K.tx;x.textAlign='center';
+       const lbl=q>=0?C.cf[q].on.map(dn).join('+'):q==-2?'FWD':'OFF';
+       x.fillText(lbl,(xa+xb)/2,c0+17);
+     }
+     s0=k;
+   }
+ }
+
+ // Thyristor gate trigger tick marks
+ if(S.dev=='tcr'){
+   x.fillStyle=K.gate;
+   C.th.forEach(t=>{
+     const px=X((((t+S.alpha*D)%TP)/TP)*N);
+     x.beginPath();
+     x.moveTo(px,c0-8);x.lineTo(px-4,c0-2);x.lineTo(px+4,c0-2);
+     x.closePath();x.fill();
+   });
+ }
+
+ // Angle scrubber cursor
+ const cx=X(n);
+ x.strokeStyle=K.tx;x.lineWidth=1.5;x.setLineDash([3,3]);
+ x.beginPath();x.moveTo(cx,a0);x.lineTo(cx,c1);x.stroke();
+ x.setLineDash([]);
+
+ [[YA(res.vo[n]),K.vo],[YB(res.io[n]),K.io]].forEach(([y,col])=>{
+   x.fillStyle=col;x.shadowColor=col;x.shadowBlur=8;
+   x.beginPath();x.arc(cx,y,4.5,0,TP);x.fill();
+   x.shadowBlur=0;
+ });
+}
+
+function draw(){
+ const n=Math.floor(S.wt/360*N)%N,sa=res.st[n];
+ $('wtv').textContent=Math.round(S.wt)+'°';
+ 
+ const stEl=$('st');
+ stEl.className='';
+ if(sa>=0){
+   stEl.textContent=`ωt ${f(S.wt,0)}° · Active Conduction: ${C.cf[sa].on.map(dn).join(' + ')} (vo = ${f(res.vo[n],1)} V, io = ${f(res.io[n],2)} A)`;
+ }else if(sa===-2){
+   stEl.className='fwd-state';
+   stEl.textContent=`ωt ${f(S.wt,0)}° · Freewheeling via FWD (dissipating stored L energy, io = ${f(res.io[n],2)} A)`;
+ }else{
+   stEl.className='off-state';
+   stEl.textContent=`ωt ${f(S.wt,0)}° · No device conducting (current zero, vo = ${f(res.vo[n],1)} V)`;
+ }
+
+ sch(n);
+ wave(n);
+}
+
+function ui(){
+ document.querySelectorAll('.seg').forEach(g=>g.querySelectorAll('button').forEach(b=>{
+   const o=String(S[g.dataset.k])==b.dataset.v;
+   b.classList.toggle('on',o);b.setAttribute('aria-pressed',o);
+ }));
+ const lab={
+   alpha:S.dev=='dbr'?'0° (diodes)':S.alpha+'°',
+   V:S.V+' V',
+   R:S.R+' Ω',
+   L:S.L+' mH',
+   E:S.E+' V'
+ };
+ for(const k in lab){
+   $('l_'+k).querySelector('b').textContent=lab[k];
+   $(k).value=S[k];
+ }
+ $('l_alpha').classList.toggle('off',S.dev=='dbr');
+ $('alpha').disabled=S.dev=='dbr';
+ $('l_L').classList.toggle('off',S.load=='r');
+ $('L').disabled=S.load=='r';
+ $('l_E').classList.toggle('off',S.load!='rle');
+ $('E').disabled=S.load!='rle';
+ $('fwd').disabled=S.load=='r';
+ $('ttl').textContent=`${S.ph==1?'Single-phase':'Three-phase'} ${S.wave=='hw'?'half-wave':'full-wave'} ${S.dev=='dbr'?'diode bridge rectifier (DBR)':'thyristor controlled rectifier (TCR)'}`;
+}
+
+function fit(){
+ const g=$('sc'),w=g.parentElement.clientWidth-28;
+ g.style.height=w*330/520+'px';g.width=w*dpr;g.height=w*330/520*dpr;
+ const c=$('wv'),cw=c.parentElement.clientWidth-28;
+ const h=(cw<520?360:440);
+ c.style.height=h+'px';c.width=cw*dpr;c.height=h*dpr;
+}
+
+function update(){
+ ui();
+ sim();
+ metrics();
+ draw();
+}
+
+// Interactive Scrubbing and Tooltip on Waveform Canvas
+const wvCanvas=$('wv');
+const wvTip=$('wv-tip');
+
+function handleWvHover(e){
+ const rect=wvCanvas.getBoundingClientRect();
+ const x=e.clientX-rect.left;
+ const pl=52,pr=14,w=rect.width;
+ if(x<pl||x>w-pr){wvTip.style.display='none';return}
+ const deg=Math.min(359.9,Math.max(0,(x-pl)/(w-pl-pr)*360));
+ const n=Math.floor(deg/360*N)%N;
+ const voVal=res.vo[n],ioVal=res.io[n],sa=res.st[n];
+ const devStr=sa>=0?C.cf[sa].on.map(dn).join('+'):sa===-2?'FWD':'OFF';
+ wvTip.style.display='block';
+ wvTip.style.left=Math.min(w-160,Math.max(10,x+12))+'px';
+ wvTip.style.top='20px';
+ wvTip.innerHTML=`<b>ωt: ${deg.toFixed(1)}°</b><br>vo: ${f(voVal,1)} V<br>io: ${f(ioVal,2)} A<br>Dev: <span style="color:${sa>=0?K.vo:sa===-2?K.io:K.mu}">${devStr}</span>`;
+ if(e.buttons===1){
+   S.wt=deg;
+   $('wt').value=S.wt;
+   draw();
+ }
+}
+
+wvCanvas.addEventListener('mousemove',handleWvHover);
+wvCanvas.addEventListener('mousedown',handleWvHover);
+wvCanvas.addEventListener('mouseleave',()=>{wvTip.style.display='none'});
+
+// Event Listeners for controls
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+ const k=b.parentElement.dataset.k,v=b.dataset.v;
+ S[k]=(k=='ph')?+v:v;
+ update();
+});
+
+['alpha','V','R','L','E'].forEach(k=>$(k).oninput=e=>{S[k]=+e.target.value;update()});
+$('fwd').onchange=e=>{S.fwd=e.target.checked;update()};
+$('wt').oninput=e=>{S.wt=+e.target.value;draw()};
+
+// Speed buttons
+document.querySelectorAll('#speed-grp button').forEach(b=>{
+ b.onclick=()=>{
+   document.querySelectorAll('#speed-grp button').forEach(btn=>btn.classList.remove('active'));
+   b.classList.add('active');
+   S.speed=+b.dataset.spd;
+ };
+});
+
+$('step-back').onclick=()=>{
+ S.wt=(S.wt-5+360)%360;$('wt').value=S.wt;draw();
+};
+$('step-fwd').onclick=()=>{
+ S.wt=(S.wt+5)%360;$('wt').value=S.wt;draw();
+};
+
+// Continuous Animation Loop: updates current flow particles even when paused!
+function animLoop(ts){
+ const dt=ts-lastFrameTime;
+ lastFrameTime=ts;
+ 
+ // Flow offset advances smoothly in direction of current
+ const n=Math.floor(S.wt/360*N)%N;
+ const ioMag=res?res.io[n]:0;
+ const flowSpeed=Math.min(1.2,Math.max(0.15,ioMag/8));
+ flowOffset+=dt*0.06*flowSpeed;
+
+ if(S.play){
+   S.wt=(S.wt+dt*0.06*S.speed)%360;
+   $('wt').value=S.wt;
+ }
+ draw();
+ requestAnimationFrame(animLoop);
+}
+
+$('pl').onclick=()=>{
+ S.play=!S.play;
+ $('pl').textContent=S.play?'Pause':'Play';
+};
+
+// Dark / Light Theme Toggle
+$('theme-btn').onclick=()=>{
+ const cur=document.documentElement.getAttribute('data-theme');
+ const next=cur==='light'?'dark':'light';
+ document.documentElement.setAttribute('data-theme',next);
+ cols();
+ draw();
+};
+
+addEventListener('resize',()=>{fit();draw()});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{cols();draw()});
+
+cols();
+fit();
+update();
+requestAnimationFrame(animLoop);
+</script></body></html>

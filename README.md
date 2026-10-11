@@ -1,4 +1,4 @@
-# Rectifier Bench ⚡
+# power_electronics_rectifier ⚡
 
 An interactive, browser-based power electronics laboratory for simulating, visualizing, and analyzing **diode (DBR)** and **thyristor (TCR)** rectifiers in real time.
 
